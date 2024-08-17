@@ -118,8 +118,8 @@
 
         const questions = [
             { q: "映画「マッドマックス 怒りのデス・ロード」のストーリー（あらすじ）を教えてください。" },
-            { q: "「こころ」のあらすじを教えてください。" },
-            { q: "「坊っちゃん」のあらすじを教えてください。" }
+            { q: "映画「マッドマックス 怒りのデス・ロード」のストーリー（あらすじ）を教えてください。" },
+            { q: "映画「マッドマックス 怒りのデス・ロード」のストーリー（あらすじ）を教えてください。" },
         ];
 
         let quizStates = [];
@@ -129,7 +129,7 @@
             container.className = 'question-container';
             container.innerHTML = `
                 <div class="question-header">
-                    <span class="question-number">問題 ${index + 1}</span>
+                    <span class="question-number">演習 ${index + 1}</span>
                     <div class="stopwatch" id="stopwatch-${index}">00:00:00.000</div>
                 </div>
                 <div class="question-text" id="question-text-${index}">ここに問題文が表示されます</div>
