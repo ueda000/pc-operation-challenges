@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>なぜあなたはPC操作が遅いのか</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f7f7f7;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        .question-container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .question-number {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .stopwatch {
+            font-family: monospace;
+            font-size: 18px;
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .question-text {
+            margin-bottom: 15px;
+            font-size: 16px;
+            min-height: 1.5em;
+            color: #95a5a6;
+        }
+        textarea {
+            width: 100%;
+            resize: vertical;
+            margin-bottom: 15px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            padding: 10px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        textarea:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .button-container {
+            display: flex;
+            align-items: center;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            width: 80px;
+        }
+        .startRetryBtn {
+            background-color: #2ecc71;
+            color: white;
+        }
+        .startRetryBtn:hover {
+            background-color: #27ae60;
+        }
+        .startRetryBtn.retry {
+            background-color: #34495e;
+        }
+        .startRetryBtn.retry:hover {
+            background-color: #2c3e50;
+        }
+        .submitBtn {
+            background-color: #3498db;
+            color: white;
+        }
+        .submitBtn:hover {
+            background-color: #2980b9;
+        }
+        .result {
+            font-size: 24px;
+            margin-left: 10px;
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>なぜあなたはPC操作が遅いのか</h1>
+    <div id="quizContainer"></div>
+
+    <script>
+        const quizContainer = document.getElementById('quizContainer');
+
+        const questions = [
+            { q: "映画「マッドマックス 怒りのデス・ロード」のストーリー（あらすじ）を教えてください。" },
+            { q: "「こころ」のあらすじを教えてください。" },
+            { q: "「坊っちゃん」のあらすじを教えてください。" }
+        ];
+
+        let quizStates = [];
+
+        function createQuestionElement(question, index) {
+            const container = document.createElement('div');
+            container.className = 'question-container';
+            container.innerHTML = `
+                <div class="question-header">
+                    <span class="question-number">問題 ${index + 1}</span>
+                    <div class="stopwatch" id="stopwatch-${index}">00:00:00.000</div>
+                </div>
+                <div class="question-text" id="question-text-${index}">ここに問題文が表示されます</div>
+                <textarea rows="4" id="answer-${index}" disabled placeholder="ここに回答を入力してください"></textarea>
+                <div class="button-container">
+                    <button class="startRetryBtn" data-index="${index}">開始</button>
+                    <button class="submitBtn hidden" data-index="${index}" disabled>提出</button>
+                    <span class="result" id="result-${index}"></span>
+                </div>
+            `;
+            return container;
+        }
+
+        function updateStopwatch(index) {
+            const stopwatchEl = document.getElementById(`stopwatch-${index}`);
+            const now = new Date().getTime();
+            const elapsed = now - quizStates[index].startTime;
+            const hours = Math.floor(elapsed / 3600000);
+            const minutes = Math.floor((elapsed % 3600000) / 60000);
+            const seconds = Math.floor((elapsed % 60000) / 1000);
+            const milliseconds = elapsed % 1000;
+            stopwatchEl.textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
+        }
+
+        function initializeQuiz() {
+            quizContainer.innerHTML = '';
+            quizStates = questions.map(() => ({
+                interval: null,
+                startTime: null,
+                isStarted: false,
+                isSubmitted: false
+            }));
+
+            questions.forEach((question, index) => {
+                const questionElement = createQuestionElement(question, index);
+                quizContainer.appendChild(questionElement);
+            });
+        }
+
+        function startQuestion(index) {
+            const questionContainer = quizContainer.children[index];
+            const startRetryBtn = questionContainer.querySelector('.startRetryBtn');
+            const questionText = questionContainer.querySelector('.question-text');
+            const answerEl = questionContainer.querySelector('textarea');
+            const submitBtn = questionContainer.querySelector('.submitBtn');
+
+            startRetryBtn.classList.add('hidden');
+            questionText.textContent = questions[index].q;
+            questionText.style.color = '#333';
+            answerEl.disabled = false;
+            submitBtn.classList.remove('hidden');
+            submitBtn.disabled = false;
+
+            quizStates[index].startTime = new Date().getTime();
+            quizStates[index].interval = setInterval(() => updateStopwatch(index), 10);
+            quizStates[index].isStarted = true;
+        }
+
+        function submitAnswer(index) {
+            const questionContainer = quizContainer.children[index];
+            const answerEl = questionContainer.querySelector('textarea');
+            const submitBtn = questionContainer.querySelector('.submitBtn');
+            const resultEl = questionContainer.querySelector('.result');
+            const startRetryBtn = questionContainer.querySelector('.startRetryBtn');
+
+            clearInterval(quizStates[index].interval);
+            answerEl.disabled = true;
+            submitBtn.disabled = true;
+
+            if (answerEl.value.length >= 10) {
+                resultEl.textContent = '⭕️';
+            } else {
+                resultEl.textContent = '❌';
+            }
+
+            quizStates[index].isSubmitted = true;
+
+            startRetryBtn.textContent = '再挑戦';
+            startRetryBtn.classList.remove('hidden');
+            startRetryBtn.classList.add('retry');
+            submitBtn.classList.add('hidden');
+        }
+
+        function retryQuestion(index) {
+            const questionContainer = quizContainer.children[index];
+            const questionText = questionContainer.querySelector('.question-text');
+            const answerEl = questionContainer.querySelector('textarea');
+            const resultEl = questionContainer.querySelector('.result');
+            const stopwatchEl = questionContainer.querySelector('.stopwatch');
+            const startRetryBtn = questionContainer.querySelector('.startRetryBtn');
+            const submitBtn = questionContainer.querySelector('.submitBtn');
+
+            questionText.textContent = 'ここに問題文が表示されます';
+            questionText.style.color = '#95a5a6';
+            answerEl.value = '';
+            answerEl.disabled = true;
+            resultEl.textContent = '';
+            stopwatchEl.textContent = '00:00:00.000';
+
+            startRetryBtn.textContent = '開始';
+            startRetryBtn.classList.remove('retry');
+            submitBtn.classList.add('hidden');
+            submitBtn.disabled = true;
+
+            clearInterval(quizStates[index].interval);
+            quizStates[index].isStarted = false;
+            quizStates[index].isSubmitted = false;
+        }
+
+        quizContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('startRetryBtn')) {
+                const index = parseInt(e.target.getAttribute('data-index'));
+                if (quizStates[index].isSubmitted) {
+                    retryQuestion(index);
+                } else {
+                    startQuestion(index);
+                }
+            } else if (e.target.classList.contains('submitBtn')) {
+                const index = parseInt(e.target.getAttribute('data-index'));
+                submitAnswer(index);
+            }
+        });
+
+        initializeQuiz();
+    </script>
+</body>
+</html>
